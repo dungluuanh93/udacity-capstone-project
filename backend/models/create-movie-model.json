@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "group",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9 ]+$",
+      "minLength": 3
+    },
+    "releaseDate": {
+      "type": "string",
+      "pattern": "([12]\\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01]))"
+    }
+  },
+  "required": [
+    "name",
+    "dueDate"
+  ],
+  "additionalProperties": false
+}

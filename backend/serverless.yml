@@ -1,0 +1,288 @@
+# TODO: Change the name of the org 
+service: serverless-capstone-movies-app
+
+plugins:
+  - serverless-webpack
+  - serverless-iam-roles-per-function
+  - serverless-plugin-tracing
+  - serverless-aws-documentation
+  - serverless-reqvalidator-plugin
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: '20201221'
+
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+
+  tracing:
+    lambda: true
+    apiGateway: true
+
+
+  # Use these variables in the functions and resouorces section below. For example, 
+  # ${self:provider.environment.ATTACHMENT_S3_BUCKET}
+  environment:
+    MOVIES_TABLE: Movies-${self:provider.stage}
+    MOVIES_USER_INDEX: MoviesUserIndex
+    ATTACHMENT_S3_BUCKET: serverless-capstone-app-posters-284614606815-${self:provider.stage}
+    SIGNED_URL_EXPIRATION: 300
+    JWTS_URL: https://dev-1ce4mq2j.us.auth0.com/.well-known/jwks.json
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - xray:PutTelemetryRecords
+            - xray:PutTraceSegments
+          Resource: "*"
+        
+
+custom:
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: Udagram API
+        description: Serverless application for CRUD Movies
+    models:
+      - name: CreateMovieRequest
+        contentType: application/json
+        schema: ${file(models/create-movie-model.json)}
+      - name: UpdateMovieRequest
+        contentType: application/json
+        schema: ${file(models/update-movie-model.json)}
+
+functions:
+
+  Auth:
+    handler: src/lambda/auth/auth0Authorizer.handler
+
+  # TODO: Configure this function - 
+  # Provide iamRoleStatements property for performing Actions on DynamoDB
+  GetMovies:
+    handler: src/lambda/http/getMovies.handler
+    events:
+      - http:
+          method: get
+          path: Movies
+          cors: true
+          authorizer: Auth
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MOVIES_TABLE}/index/${self:provider.environment.MOVIES_USER_INDEX}
+      - Effect: Allow
+        Action: 
+           - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MOVIES_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource:
+          - '*'
+  # TODO: Configure this function - 
+  # Provide iamRoleStatements property. Decide the Actions and AWS Resource. 
+  # To refer to an AWS resource defined in the "Resources" section, you can use "Resource: !GetAtt <resource-name>.Arn"
+  # To validate incoming HTTP requests, we have provided the request schemas in function definition below. 
+  CreateMovie:
+    handler: src/lambda/http/createMovie.handler
+    events:
+      - http:
+          method: post
+          path: Movies
+          cors: true
+          authorizer: Auth
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Create a new Movie
+            description: Create a new Movie
+            requestModels:
+              "application/json": CreateMovieRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MOVIES_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource:
+          - '*'
+
+  # TODO: Configure this function
+  # Provide property for setting up CORS, Authorizer, iamRoleStatements, and request schemas
+  UpdateMovie:
+    handler: src/lambda/http/updateMovie.handler
+    events:
+      - http:
+          method: patch
+          path: Movies/{movieId}
+          cors: true
+          authorizer: Auth
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Update a Movie
+            description: Update a Movie
+            requestModels:
+              "application/json": UpdateMovieRequest
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MOVIES_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource:
+          - '*'
+
+  # TODO: Configure this function
+  # Provide property for setting up CORS, Authorizer, iamRoleStatements
+  DeleteMovie:
+    handler: src/lambda/http/deleteMovie.handler
+    events:
+      - http:
+          method: delete
+          path: Movies/{movieId}
+          cors: true
+          authorizer: Auth
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MOVIES_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource:
+          - '*'
+      - Effect: Allow
+        Action: "s3:DeleteObject"
+        Resource: "arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*"
+
+
+  # TODO: Configure this function
+  # Provide property for setting up CORS, Authorizer, iamRoleStatements
+  GenerateUploadUrl:
+    handler: src/lambda/http/generateUploadUrl.handler
+    events:
+      - http:
+          method: post
+          path: Movies/{movieId}/attachment
+          cors: true
+          authorizer: Auth
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.MOVIES_TABLE}
+      - Effect: Allow
+        Action:
+          - xray:PutTraceSegments
+          - xray:PutTelemetryRecords
+        Resource:
+          - '*'
+
+resources:
+  Resources:
+    # Add necessary AWS resources. You will need at least the following AWS resources
+    # TODO: Fill the properties
+    # Feel free to change the names as you like. 
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
+
+    RequestBodyValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: "request-body-validator"
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
+    
+    # TODO: Create a DynamoDB table with local secondary index and a composite key
+    MoviesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: movieId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: movieId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.MOVIES_TABLE}
+        GlobalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.MOVIES_USER_INDEX}
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: movieId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+    # TODO: Complete the bucket properties below. 
+    # Do not forget to add the CorsConfiguration propoerty
+    AttachmentsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.ATTACHMENT_S3_BUCKET}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - "*"
+              AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+                - HEAD
+              MaxAge: 3000
+
+    # TODO: Complete the policy below and attach it to the bucket defined above
+    # For cross referencing the name of the bucket, use "!Ref AttachmentsBucket"
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        PolicyDocument:
+          Id: MyPolicy
+          Version: "2012-10-17"
+          Statement:
+            - Sid: PublicReadForGetBucketObjects
+              Effect: Allow
+              Principal: "*"
+              Action: "s3:GetObject"
+              Resource: "arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*"
+        Bucket: !Ref AttachmentsBucket
