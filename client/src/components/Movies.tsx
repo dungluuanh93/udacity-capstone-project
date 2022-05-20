@@ -126,7 +126,7 @@ export class Movies extends React.PureComponent<MoviesProps, MoviesState> {
               color: 'teal',
               labelPosition: 'left',
               icon: 'add',
-              content: 'New task',
+              content: 'New movie',
               onClick: this.onMovieCreate
             }}
             fluid

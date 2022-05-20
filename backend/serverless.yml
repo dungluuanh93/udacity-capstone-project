@@ -70,7 +70,7 @@ functions:
     events:
       - http:
           method: get
-          path: Movies
+          path: movies
           cors: true
           authorizer: Auth
     iamRoleStatements:
@@ -98,7 +98,7 @@ functions:
     events:
       - http:
           method: post
-          path: Movies
+          path: movies
           cors: true
           authorizer: Auth
           reqValidatorName: RequestBodyValidator
@@ -126,7 +126,7 @@ functions:
     events:
       - http:
           method: patch
-          path: Movies/{movieId}
+          path: movies/{movieId}
           cors: true
           authorizer: Auth
           reqValidatorName: RequestBodyValidator
@@ -154,7 +154,7 @@ functions:
     events:
       - http:
           method: delete
-          path: Movies/{movieId}
+          path: movies/{movieId}
           cors: true
           authorizer: Auth
     iamRoleStatements:
@@ -180,7 +180,7 @@ functions:
     events:
       - http:
           method: post
-          path: Movies/{movieId}/attachment
+          path: movies/{movieId}/attachment
           cors: true
           authorizer: Auth
     iamRoleStatements:

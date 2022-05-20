@@ -62,7 +62,7 @@ export class EditMovie extends React.PureComponent<
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      alert('Could not upload a file: ' + errorMessage)
+      alert(`Failed to fetch movies: ${errorMessage}`)
     } finally {
       this.setUploadState(UploadState.NoUpload)
     }

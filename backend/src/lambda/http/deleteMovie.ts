@@ -8,14 +8,16 @@ import { deleteMovie } from '../../businessLogic/movies'
 import { createLogger } from '../../utils/logger'
 import { getToken } from '../../auth/utils'
 
-const logger = createLogger('delete-todo')
+const logger = createLogger('delete-movie')
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    logger.info('delete todo')
+    logger.info('delete movie')
     try {
-      const todoId = event.pathParameters.todoId
-      const jwtToken = getToken(event.headers.Authorization)
-      await deleteMovie(todoId, jwtToken)
+      const movieId = event.pathParameters.movieId
+      const jwtToken: string = getToken(event.headers.Authorization)
+      logger.info('movieId: ', movieId)
+      logger.info('token: ', jwtToken)
+      await deleteMovie(movieId, jwtToken)
       return {
         statusCode: 200,
         body: JSON.stringify(true)
