@@ -14,110 +14,110 @@ import {
   Loader
 } from 'semantic-ui-react'
 
-import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
+import { createMovie, deleteMovie, getMovies, patchMovie } from '../api/movies-api'
 import Auth from '../auth/Auth'
-import { Todo } from '../types/Todo'
+import { Movie } from '../types/Movie'
 
-interface TodosProps {
+interface MoviesProps {
   auth: Auth
   history: History
 }
 
-interface TodosState {
-  todos: Todo[]
-  newTodoName: string
-  loadingTodos: boolean
+interface MoviesState {
+  movies: Movie[]
+  newMovieName: string
+  loadingMovies: boolean
 }
 
-export class Todos extends React.PureComponent<TodosProps, TodosState> {
-  state: TodosState = {
-    todos: [],
-    newTodoName: '',
-    loadingTodos: true
+export class Movies extends React.PureComponent<MoviesProps, MoviesState> {
+  state: MoviesState = {
+    movies: [],
+    newMovieName: '',
+    loadingMovies: true
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ newTodoName: event.target.value })
+    this.setState({ newMovieName: event.target.value })
   }
 
-  onEditButtonClick = (todoId: string) => {
-    this.props.history.push(`/todos/${todoId}/edit`)
+  onEditButtonClick = (movieId: string) => {
+    this.props.history.push(`/movies/${movieId}/edit`)
   }
 
-  onTodoCreate = async (event: React.ChangeEvent<HTMLButtonElement>) => {
+  onMovieCreate = async (event: React.ChangeEvent<HTMLButtonElement>) => {
     try {
-      const dueDate = this.calculateDueDate()
-      const newTodo = await createTodo(this.props.auth.getIdToken(), {
-        name: this.state.newTodoName,
-        dueDate
+      const releaseDate = this.calculateDueDate()
+      const newMovie = await createMovie(this.props.auth.getIdToken(), {
+        name: this.state.newMovieName,
+        releaseDate
       })
       this.setState({
-        todos: [...this.state.todos, newTodo],
-        newTodoName: ''
+        movies: [...this.state.movies, newMovie],
+        newMovieName: ''
       })
     } catch {
-      alert('Todo creation failed')
+      alert('Movie creation failed')
     }
   }
 
-  onTodoDelete = async (todoId: string) => {
+  onMovieDelete = async (movieId: string) => {
     try {
-      await deleteTodo(this.props.auth.getIdToken(), todoId)
+      await deleteMovie(this.props.auth.getIdToken(), movieId)
       this.setState({
-        todos: this.state.todos.filter(todo => todo.todoId !== todoId)
+        movies: this.state.movies.filter(movie => movie.movieId !== movieId)
       })
     } catch {
-      alert('Todo deletion failed')
+      alert('Movie deletion failed')
     }
   }
 
-  onTodoCheck = async (pos: number) => {
+  onMovieCheck = async (pos: number) => {
     try {
-      const todo = this.state.todos[pos]
-      await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
-        name: todo.name,
-        dueDate: todo.dueDate,
-        done: !todo.done
+      const movie = this.state.movies[pos]
+      await patchMovie(this.props.auth.getIdToken(), movie.movieId, {
+        name: movie.name,
+        releaseDate: movie.releaseDate,
+        status: !movie.status
       })
       this.setState({
-        todos: update(this.state.todos, {
-          [pos]: { done: { $set: !todo.done } }
+        movies: update(this.state.movies, {
+          [pos]: { status: { $set: !movie.status } }
         })
       })
     } catch {
-      alert('Todo deletion failed')
+      alert('Movie deletion failed')
     }
   }
 
   async componentDidMount() {
     try {
-      const todos = await getTodos(this.props.auth.getIdToken())
+      const movies = await getMovies(this.props.auth.getIdToken())
       this.setState({
-        todos,
-        loadingTodos: false
+        movies,
+        loadingMovies: false
       })
     } catch (error) {
       let errorMessage = "Failed to do something exceptional";
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      alert(`Failed to fetch todos: ${errorMessage}`)
+      alert(`Failed to fetch movies: ${errorMessage}`)
     }
   }
 
   render() {
     return (
       <div>
-        <Header as="h1">TODOs</Header>
+        <Header as="h1">MOVIEs</Header>
 
-        {this.renderCreateTodoInput()}
+        {this.renderCreateMovieInput()}
 
-        {this.renderTodos()}
+        {this.renderMovies()}
       </div>
     )
   }
 
-  renderCreateTodoInput() {
+  renderCreateMovieInput() {
     return (
       <Grid.Row>
         <Grid.Column width={16}>
@@ -127,7 +127,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
               labelPosition: 'left',
               icon: 'add',
               content: 'New task',
-              onClick: this.onTodoCreate
+              onClick: this.onMovieCreate
             }}
             fluid
             actionPosition="left"
@@ -142,47 +142,47 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     )
   }
 
-  renderTodos() {
-    if (this.state.loadingTodos) {
+  renderMovies() {
+    if (this.state.loadingMovies) {
       return this.renderLoading()
     }
 
-    return this.renderTodosList()
+    return this.renderMoviesList()
   }
 
   renderLoading() {
     return (
       <Grid.Row>
         <Loader indeterminate active inline="centered">
-          Loading TODOs
+          Loading MOVIEs
         </Loader>
       </Grid.Row>
     )
   }
 
-  renderTodosList() {
+  renderMoviesList() {
     return (
       <Grid padded>
-        {this.state.todos.map((todo, pos) => {
+        {this.state.movies.map((movie, pos) => {
           return (
-            <Grid.Row key={todo.todoId}>
+            <Grid.Row key={movie.movieId}>
               <Grid.Column width={1} verticalAlign="middle">
                 <Checkbox
-                  onChange={() => this.onTodoCheck(pos)}
-                  checked={todo.done}
+                  onChange={() => this.onMovieCheck(pos)}
+                  checked={movie.status}
                 />
               </Grid.Column>
               <Grid.Column width={10} verticalAlign="middle">
-                {todo.name}
+                {movie.name}
               </Grid.Column>
               <Grid.Column width={3} floated="right">
-                {todo.dueDate}
+                {movie.releaseDate}
               </Grid.Column>
               <Grid.Column width={1} floated="right">
                 <Button
                   icon
                   color="blue"
-                  onClick={() => this.onEditButtonClick(todo.todoId)}
+                  onClick={() => this.onEditButtonClick(movie.movieId)}
                 >
                   <Icon name="pencil" />
                 </Button>
@@ -191,13 +191,13 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                 <Button
                   icon
                   color="red"
-                  onClick={() => this.onTodoDelete(todo.todoId)}
+                  onClick={() => this.onMovieDelete(movie.movieId)}
                 >
                   <Icon name="delete" />
                 </Button>
               </Grid.Column>
-              {todo.attachmentUrl && (
-                <Image src={todo.attachmentUrl} size="small" wrapped />
+              {movie.attachmentUrl && (
+                <Image src={movie.attachmentUrl} size="small" wrapped />
               )}
               <Grid.Column width={16}>
                 <Divider />

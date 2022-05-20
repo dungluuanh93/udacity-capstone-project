@@ -1,5 +1,5 @@
 {
-  "name": "serverless-todo-app",
+  "name": "serverless-movies-app",
   "version": "1.0.0",
   "description": "Serverless TODO image app",
   "dependencies": {
